@@ -1,12 +1,11 @@
-import numpy as np
 import cv2
 import glob
 import pickle
 import os
-
+import numpy as np
 #Class for camera calibratiom
 class Camera:
-    def __init__(self, cal_images_path):
+    def __init__(self, cal_images_path = 'camera_cal'):
         self.images = glob.glob(cal_images_path +'/calibration*.jpg')
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
         self.objp = np.zeros((6 * 9, 3), np.float32)
