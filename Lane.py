@@ -4,7 +4,7 @@ class Lane:
         '''
         :param n: number of frames to be kept on memory
         :param x: x pixel values
-        :param y: y pixel vlaues
+        :param y: y pixel values
         '''
         # was the line detected in the last iteration?
         self.detected = False
@@ -71,7 +71,7 @@ class Lane:
         :param other: other line to compare
         :return: True if the coefficients are similar
         '''
-        is_parallel = np.abs(self.best_fit[0] - other.best_fit[0]) < 0.0003 and  np.abs(self.best_fit[1] - other.best_fit[1]) < 0.5
+        is_parallel = np.abs(self.best_fit[0] - other.best_fit[0]) < 0.00003 and  np.abs(self.best_fit[1] - other.best_fit[1]) < 0.5
         return is_parallel
 
     def calculate_distance(self, other):
@@ -114,5 +114,5 @@ class Lane:
         :return: True if the curvature is in standards
         '''
         min_curvature = 900 # in meters
-        max_curvature = 6000 # in meters
+        max_curvature = 4500 # in meters
         return (min_curvature < self.calculate_radius() < max_curvature)

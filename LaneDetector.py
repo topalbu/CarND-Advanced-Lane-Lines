@@ -4,7 +4,6 @@ from Camera import Camera
 from ImageProcesing import *
 from PerspectiveTransform import PerspectiveTransform
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 from Lane import  Lane
 
 
@@ -44,12 +43,12 @@ class LaneDetector:
         cv2.putText(image, right_coord, (1020, 700), font, 1, (255, 255, 255), 2)
 
         # Write dist from center
-        perfect_center = 1280 / 2.
-        lane_x = self.right_line.line_base_pos - self.left_line.line_base_pos
-        center_x = (lane_x / 2.0) + self.left_line.line_base_pos
-        cms_per_pixel = 370.0 / lane_x  # US regulation lane width = 3.7m
-        dist_from_center = (center_x - perfect_center) * cms_per_pixel
-        dist_text = "Dist from Center: {0:.2f} cms".format(dist_from_center)
+        center = image.shape[1]/2
+        lane_center = self.right_line.line_base_pos - self.left_line.line_base_pos
+        center_x = (lane_center / 2.0) + self.left_line.line_base_pos
+        cm_per_pixel = 370.0 / lane_center  # US regulation lane width = 3.7m
+        dist_from_center = (center_x - center) * cm_per_pixel
+        dist_text = "Dist from Center: {0:.2f} cm".format(dist_from_center)
         cv2.putText(image, dist_text, (450, 50), font, 1, (255, 255, 255), 2)
         return image
 
@@ -97,14 +96,14 @@ class LaneDetector:
         binary_image = combined_threshold(image)
         binary_warped = self.pT.get_perpective_transform(binary_image)
 
-
         left_detected = False
         right_detected = False
         left_x = left_y = right_x = right_y = []
         if self.left_line is not None and self.right_line is not None:
-            left_x , left_y = self.search_along_previous_lane(binary_warped,self.left_line.current_fit)
-            right_x, right_y = self.search_along_previous_lane(binary_warped, self.right_line.current_fit)
-            left_detected, right_detected = self.validate_lane(left_x , left_y,right_x, right_y)
+            if self.left_line.detected and self.right_line.detected:
+                left_x , left_y = self.search_along_previous_lane(binary_warped,self.left_line.current_fit)
+                right_x, right_y = self.search_along_previous_lane(binary_warped, self.right_line.current_fit)
+                left_detected, right_detected = self.validate_lane(left_x , left_y,right_x, right_y)
 
         if not left_detected:
             left_x , left_y = self.histogram_search(binary_warped,(250,binary_warped.shape[1]//2))
@@ -114,6 +113,7 @@ class LaneDetector:
 
         if not left_detected or right_detected:
             left_detected, right_detected = self.validate_lane(left_x, left_y, right_x, right_y)
+
 
         if left_detected:
             if self.left_line is not None:
@@ -132,6 +132,8 @@ class LaneDetector:
         if self.left_line is not None and self.right_line is not None:
             output = self.draw_lanes(image,binary_warped)
             self.draw_lanes_info(output)
+            self.left_line.detected = left_detected
+            self.right_line.detected = right_detected
         return output
 
     def validate_lane(self,left_x , left_y,right_x, right_y):
@@ -273,14 +275,20 @@ class LaneDetector:
         # Again, extract line pixel positions
         x = nonzerox[lane_inds]
         y = nonzeroy[lane_inds]
-
         if self.debug:
             # Fit a second order polynomial
+            debug_image = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
             poly_fit = np.polyfit(x, y, 2)
             # Generate x and y values
             ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
             fitx = poly_fit[0] * ploty ** 2 + poly_fit[1] * ploty + poly_fit[2]
-
+            debug_image[nonzeroy[lane_inds], nonzerox[lane_inds]] = [255, 0, 0]
+            plt.plot(x, y, color='yellow')
+            plt.xlim(0, 1280)
+            plt.ylim(720, 0)
+            plt.show()
+            plt.imshow(debug_image)
+            plt.show()
         return x,y
 
     def draw_hist_search_result(self,binary_warped,left_fit,right_fit,out_img,left_lane_inds,right_lane_inds,nonzerox,nonzeroy):
@@ -396,41 +404,3 @@ class LaneDetector:
 
         return window_centroids
 
-
-laneDetector = LaneDetector()
-import os
-from moviepy.editor import VideoFileClip
-
-white_output = 'project_video_out.mp4'  # New video
-os.remove(white_output)
-clip1 = VideoFileClip('project_video.mp4')  # .subclip(21.00,25.00) # project video
-# clip = VideoFileClip("myHolidays.mp4", audio=True).subclip(50,60)
-white_clip = clip1.fl_image(laneDetector.process_image)  # NOTE: this function expects color images!!
-white_clip.write_videofile(white_output, audio=False)
-
-# import glob
-# import time
-# images = glob.glob('test_images/*.jpg')
-#
-# for image_path in images:
-#     image = mpimg.imread(image_path)
-#
-#     t = time.time()
-#     output = laneDetector.process_image(image)
-#     t2 = time.time()
-#     print(round(t2 - t, 2), 'procesing time ')
-#
-#     # t = time.time()
-#     # YCrCb_result = train_test_model(ycrcb_parameters, do_training=False, model_path=YCrCb_model_path, image=image)
-#     # t2 = time.time()
-#     # print(round(t2 - t, 2), 'procesing time for YCrCb.')
-#
-#     fig = plt.figure()
-#     plt.subplot(121)
-#     plt.imshow(image)
-#     plt.title('Original Image .')
-#     plt.subplot(122)
-#     plt.imshow(output)
-#     plt.title('Lane.')
-#     fig.tight_layout()
-#     plt.show()
