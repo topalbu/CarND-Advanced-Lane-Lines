@@ -143,7 +143,6 @@ class LaneDetector:
         new_right = None
         is_parallel = False
         distance_check = False
-
         # don't trust the data has less deetcted pixels
         if len(left_x) > 3:
             new_left = Lane(x=left_x, y=left_y)
@@ -157,6 +156,8 @@ class LaneDetector:
         if new_left is not None and new_right is not None:
             is_parallel = new_left.is_parallel(new_right)
             distance_check = 360 < new_left.calculate_distance(new_right) < 550
+            if self.debug:
+                return True, True
             if is_parallel and distance_check:
                 return True,True
 
